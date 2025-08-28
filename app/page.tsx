@@ -329,7 +329,7 @@ export default function TournamentsPage() {
               <span>検索結果 ({filteredTournaments.length}件)</span>
               <div className="flex items-center gap-2">
                 {refreshing && <div className="text-sm text-white/60">更新中...</div>}
-                <Filter className="h-5 w-5" />
+                
               </div>
             </CardTitle>
           </CardHeader>
