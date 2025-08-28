@@ -55,42 +55,44 @@ export default function TournamentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
 
-        // Fetch tournaments and config data in parallel
-        const [tournamentsResponse, configResponse] = await Promise.all([
-          fetch("/api/tournaments"),
-          fetch("/api/tournaments/config"),
-        ])
+      // Fetch tournaments and config data in parallel
+      const [tournamentsResponse, configResponse] = await Promise.all([
+        fetch("/api/tournaments"),
+        fetch("/api/tournaments/config"),
+      ])
 
-        if (!tournamentsResponse.ok) {
-          throw new Error(`Tournament API error: ${tournamentsResponse.status}`)
-        }
-
-        if (!configResponse.ok) {
-          throw new Error(`Config API error: ${configResponse.status}`)
-        }
-
-        const tournamentsData = await tournamentsResponse.json()
-        const configData = await configResponse.json()
-
-        console.log("[v0] Tournaments data:", tournamentsData)
-        console.log("[v0] Config data:", configData)
-
-        setTournaments(Array.isArray(tournamentsData) ? tournamentsData : [])
-        setConfig(configData)
-      } catch (err) {
-        console.error("[v0] API fetch error:", err)
-        setError(err instanceof Error ? err.message : "データの取得に失敗しました")
-      } finally {
-        setLoading(false)
+      if (!tournamentsResponse.ok) {
+        throw new Error(`Tournament API error: ${tournamentsResponse.status}`)
       }
-    }
 
+      if (!configResponse.ok) {
+        throw new Error(`Config API error: ${configResponse.status}`)
+      }
+
+      const tournamentsData = await tournamentsResponse.json()
+      const configData = await configResponse.json()
+
+      console.log("[v0] Tournaments data:", tournamentsData)
+      console.log("[v0] Config data:", configData)
+      console.log("[v0] Tournaments data type:", typeof tournamentsData, Array.isArray(tournamentsData))
+      console.log("[v0] Tournaments length:", Array.isArray(tournamentsData) ? tournamentsData.length : "not array")
+
+      setTournaments(Array.isArray(tournamentsData) ? tournamentsData : [])
+      setConfig(configData)
+    } catch (err) {
+      console.error("[v0] API fetch error:", err)
+      setError(err instanceof Error ? err.message : "データの取得に失敗しました")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchData()
   }, [])
 
@@ -101,11 +103,18 @@ export default function TournamentsPage() {
 
   const uniqueShops = useMemo(() => {
     const shops = [...new Set(tournaments.map((t) => t.shop_name))]
+    console.log("[v0] Unique shops:", shops)
     return shops.sort()
   }, [tournaments])
 
   const filteredTournaments = useMemo(() => {
-    return tournaments.filter((tournament) => {
+    console.log("[v0] Filtering tournaments:", tournaments.length, "tournaments")
+    console.log("[v0] Search term:", searchTerm)
+    console.log("[v0] Location filter:", locationFilter)
+    console.log("[v0] Shop filter:", shopFilter)
+    console.log("[v0] Entry fee range:", entryFeeRange)
+
+    const filtered = tournaments.filter((tournament) => {
       const matchesSearch =
         tournament.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tournament.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,8 +126,20 @@ export default function TournamentsPage() {
 
       const matchesEntryFee = tournament.entry_fee >= entryFeeRange[0] && tournament.entry_fee <= entryFeeRange[1]
 
+      console.log("[v0] Tournament:", tournament.event_name, {
+        matchesSearch,
+        matchesLocation,
+        matchesShop,
+        matchesEntryFee,
+        prefecture: tournament.prefecture,
+        locationFilter,
+      })
+
       return matchesSearch && matchesLocation && matchesShop && matchesEntryFee
     })
+
+    console.log("[v0] Filtered tournaments count:", filtered.length)
+    return filtered
   }, [searchTerm, locationFilter, shopFilter, entryFeeRange, tournaments])
 
   const formatCurrency = (amount: number) => {
@@ -223,8 +244,8 @@ export default function TournamentsPage() {
         <Card className="backdrop-blur-md bg-white/10 border-white/20">
           <CardContent className="p-6">
             <div className="space-y-4">
-              <div className="w-full">
-                <div className="relative">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
                   <Input
                     placeholder="トーナメント名、店舗名、賞金詳細で検索..."
@@ -233,6 +254,13 @@ export default function TournamentsPage() {
                     className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60"
                   />
                 </div>
+                <button
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
+                >
+                  {loading ? "更新中..." : "データ更新"}
+                </button>
               </div>
 
               <div className="flex flex-col lg:flex-row gap-4 items-end">
