@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Filter, MapPin, Calendar, Trophy, Pen as Yen, Clock, Store, ExternalLink } from "lucide-react"
@@ -10,113 +10,39 @@ import { Slider } from "@/components/ui/slider"
 import Link from "next/link"
 
 interface Tournament {
-  id: string
-  name: string
-  date: string
-  startTime: string
-  lateRegTime: string
-  shopName: string
+  id: number
+  event_id: number
+  event_name: string
+  event_link: string
+  status: string
+  shop_id: number
+  shop_name: string
+  official_page: string
+  start_time: string
+  game_rule: string
+  entry_fee: number
+  re_entry: string
+  prizes: string
+  prizes_original: string
+  address: string
   prefecture: string
-  ward: string
-  entryFee: number
-  prizeDescription: string
-  status: "upcoming" | "ongoing" | "completed"
-  participants: number
-  maxParticipants: number
+  city_ward: string
+  tel: string
+  total_winners: number
+  total_value_jpy: number
+  reward_categories: string
+  rank_list: string
+  reward_summary: string
+  created_at: string
+  updated_at: string
 }
 
-const mockTournaments: Tournament[] = [
-  {
-    id: "1",
-    name: "Tokyo Championship Series",
-    date: "02/15",
-    startTime: "19:00",
-    lateRegTime: "21:30",
-    shopName: "ポーカースタジアム渋谷",
-    prefecture: "東京都",
-    ward: "渋谷区",
-    entryFee: 50000,
-    prizeDescription: "優勝200万円、2位80万円、3位40万円",
-    status: "upcoming",
-    participants: 156,
-    maxParticipants: 200,
-  },
-  {
-    id: "2",
-    name: "Osaka Poker Masters",
-    date: "02/20",
-    startTime: "18:30",
-    lateRegTime: "20:45",
-    shopName: "梅田ポーカーハウス",
-    prefecture: "大阪府",
-    ward: "北区",
-    entryFee: 30000,
-    prizeDescription: "優勝150万円、2位60万円、3位30万円",
-    status: "upcoming",
-    participants: 89,
-    maxParticipants: 150,
-  },
-  {
-    id: "3",
-    name: "Kyoto Spring Festival",
-    date: "03/01",
-    startTime: "17:00",
-    lateRegTime: "19:00",
-    shopName: "四条ポーカークラブ",
-    prefecture: "京都府",
-    ward: "中京区",
-    entryFee: 25000,
-    prizeDescription: "優勝100万円、2位40万円、3位20万円",
-    status: "upcoming",
-    participants: 67,
-    maxParticipants: 120,
-  },
-  {
-    id: "4",
-    name: "Nagoya High Roller",
-    date: "02/25",
-    startTime: "20:00",
-    lateRegTime: "22:30",
-    shopName: "栄ポーカーアリーナ",
-    prefecture: "愛知県",
-    ward: "中区",
-    entryFee: 100000,
-    prizeDescription: "優勝500万円、2位200万円、3位100万円",
-    status: "upcoming",
-    participants: 34,
-    maxParticipants: 80,
-  },
-  {
-    id: "5",
-    name: "Fukuoka Weekly Tournament",
-    date: "02/18",
-    startTime: "19:30",
-    lateRegTime: "21:00",
-    shopName: "天神ポーカーラウンジ",
-    prefecture: "福岡県",
-    ward: "中央区",
-    entryFee: 15000,
-    prizeDescription: "優勝60万円、2位24万円、3位12万円",
-    status: "ongoing",
-    participants: 45,
-    maxParticipants: 60,
-  },
-  {
-    id: "6",
-    name: "Sapporo Winter Series",
-    date: "01/30",
-    startTime: "18:00",
-    lateRegTime: "20:30",
-    shopName: "すすきのポーカーホール",
-    prefecture: "北海道",
-    ward: "中央区",
-    entryFee: 40000,
-    prizeDescription: "優勝180万円、2位72万円、3位36万円",
-    status: "completed",
-    participants: 120,
-    maxParticipants: 120,
-  },
-]
+interface Config {
+  data: {
+    all_city_ward: string[]
+    all_prefecture: string[]
+  }
+}
 
 export default function TournamentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -124,32 +50,76 @@ export default function TournamentsPage() {
   const [shopFilter, setShopFilter] = useState("all")
   const [entryFeeRange, setEntryFeeRange] = useState([0, 100000])
 
-  const uniquePrefectures = useMemo(() => {
-    const prefectures = [...new Set(mockTournaments.map((t) => t.prefecture))]
-    return prefectures.sort()
+  const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const [config, setConfig] = useState<Config | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Fetch tournaments and config data in parallel
+        const [tournamentsResponse, configResponse] = await Promise.all([
+          fetch("/api/tournaments"),
+          fetch("/api/tournaments/config"),
+        ])
+
+        if (!tournamentsResponse.ok) {
+          throw new Error(`Tournament API error: ${tournamentsResponse.status}`)
+        }
+
+        if (!configResponse.ok) {
+          throw new Error(`Config API error: ${configResponse.status}`)
+        }
+
+        const tournamentsData = await tournamentsResponse.json()
+        const configData = await configResponse.json()
+
+        console.log("[v0] Tournaments data:", tournamentsData)
+        console.log("[v0] Config data:", configData)
+
+        setTournaments(Array.isArray(tournamentsData) ? tournamentsData : [])
+        setConfig(configData)
+      } catch (err) {
+        console.error("[v0] API fetch error:", err)
+        setError(err instanceof Error ? err.message : "データの取得に失敗しました")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
+
+  const uniquePrefectures = useMemo(() => {
+    if (!config?.data?.all_prefecture) return []
+    return config.data.all_prefecture.sort()
+  }, [config])
 
   const uniqueShops = useMemo(() => {
-    const shops = [...new Set(mockTournaments.map((t) => t.shopName))]
+    const shops = [...new Set(tournaments.map((t) => t.shop_name))]
     return shops.sort()
-  }, [])
+  }, [tournaments])
 
   const filteredTournaments = useMemo(() => {
-    return mockTournaments.filter((tournament) => {
+    return tournaments.filter((tournament) => {
       const matchesSearch =
-        tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tournament.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tournament.prizeDescription.toLowerCase().includes(searchTerm.toLowerCase())
+        tournament.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tournament.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tournament.prizes.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesLocation = locationFilter === "all" || tournament.prefecture === locationFilter
 
-      const matchesShop = shopFilter === "all" || tournament.shopName === shopFilter
+      const matchesShop = shopFilter === "all" || tournament.shop_name === shopFilter
 
-      const matchesEntryFee = tournament.entryFee >= entryFeeRange[0] && tournament.entryFee <= entryFeeRange[1]
+      const matchesEntryFee = tournament.entry_fee >= entryFeeRange[0] && tournament.entry_fee <= entryFeeRange[1]
 
       return matchesSearch && matchesLocation && matchesShop && matchesEntryFee
     })
-  }, [searchTerm, locationFilter, shopFilter, entryFeeRange])
+  }, [searchTerm, locationFilter, shopFilter, entryFeeRange, tournaments])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("ja-JP", {
@@ -159,9 +129,71 @@ export default function TournamentsPage() {
     }).format(amount)
   }
 
-  const getGoogleMapsUrl = (prefecture: string, ward: string, shopName: string) => {
-    const query = encodeURIComponent(`${prefecture} ${ward} ${shopName}`)
+  const getGoogleMapsUrl = (prefecture: string, cityWard: string, shopName: string) => {
+    const query = encodeURIComponent(`${prefecture} ${cityWard} ${shopName}`)
     return `https://www.google.com/maps/search/?api=1&query=${query}`
+  }
+
+  const formatDateTime = (dateTimeString: string) => {
+    const date = new Date(dateTimeString)
+    const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`
+    const timeStr = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+    return { dateStr, timeStr }
+  }
+
+  const getLateRegTime = (startTime: string) => {
+    const date = new Date(startTime)
+    date.setHours(date.getHours() + 2)
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+  }
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen p-4 md:p-8 flex items-center justify-center"
+        style={{
+          backgroundImage: "url('/bg.jpeg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/30 -z-10" />
+        <Card className="backdrop-blur-md bg-white/10 border-white/20">
+          <CardContent className="p-8 text-center">
+            <div className="text-white text-lg">トーナメントデータを読み込み中...</div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div
+        className="min-h-screen p-4 md:p-8 flex items-center justify-center"
+        style={{
+          backgroundImage: "url('/bg.jpeg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/30 -z-10" />
+        <Card className="backdrop-blur-md bg-white/10 border-white/20">
+          <CardContent className="p-8 text-center">
+            <div className="text-red-300 text-lg mb-4">エラーが発生しました</div>
+            <div className="text-white/80 mb-4">{error}</div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              再試行
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -275,67 +307,76 @@ export default function TournamentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTournaments.map((tournament) => (
-                    <TableRow key={tournament.id} className="border-white/20 hover:bg-white/5">
-                      <TableCell className="text-white font-medium">
-                        <Link
-                          href={`/tournament/${tournament.id}`}
-                          className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
-                        >
-                          {tournament.name}
-                          <ExternalLink className="h-3 w-3" />
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-white/80 font-semibold">
-                        {formatCurrency(tournament.entryFee)}
-                      </TableCell>
-                      <TableCell className="text-white/80 max-w-xs">
-                        <div className="truncate" title={tournament.prizeDescription}>
-                          {tournament.prizeDescription}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-white/80">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {tournament.date}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-white/80">
-                        <div className="space-y-1">
+                  {filteredTournaments.map((tournament) => {
+                    const { dateStr, timeStr } = formatDateTime(tournament.start_time)
+                    const lateRegTime = getLateRegTime(tournament.start_time)
+
+                    return (
+                      <TableRow key={tournament.id} className="border-white/20 hover:bg-white/5">
+                        <TableCell className="text-white font-medium">
+                          <Link
+                            href={tournament.event_link || `/tournament/${tournament.id}`}
+                            className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
+                          >
+                            {tournament.event_name}
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-white/80 font-semibold">
+                          {formatCurrency(tournament.entry_fee)}
+                        </TableCell>
+                        <TableCell className="text-white/80 max-w-xs">
+                          <div className="truncate" title={tournament.prizes}>
+                            {tournament.prizes.replace(/\n/g, ", ")}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-white/80">
                           <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {tournament.startTime}
+                            <Calendar className="h-4 w-4" />
+                            {dateStr}
                           </div>
-                          <div className="text-xs text-white/60 pl-5">遅刻登録: {tournament.lateRegTime}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-white/80">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <Store className="h-4 w-4" />
-                            <Link
-                              href={`/shop/${encodeURIComponent(tournament.shopName)}`}
-                              className="hover:text-blue-300 hover:underline transition-colors"
-                            >
-                              {tournament.shopName}
-                            </Link>
+                        </TableCell>
+                        <TableCell className="text-white/80">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {timeStr}
+                            </div>
+                            <div className="text-xs text-white/60 pl-5">遅刻登録: {lateRegTime}</div>
                           </div>
-                          <div className="text-xs text-white/60 pl-5">
-                            <a
-                              href={getGoogleMapsUrl(tournament.prefecture, tournament.ward, tournament.shopName)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
-                            >
-                              <MapPin className="h-3 w-3" />
-                              {tournament.prefecture}, {tournament.ward}
-                              <ExternalLink className="h-2 w-2" />
-                            </a>
+                        </TableCell>
+                        <TableCell className="text-white/80">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1">
+                              <Store className="h-4 w-4" />
+                              <Link
+                                href={tournament.official_page || `/shop/${encodeURIComponent(tournament.shop_name)}`}
+                                className="hover:text-blue-300 hover:underline transition-colors"
+                              >
+                                {tournament.shop_name}
+                              </Link>
+                            </div>
+                            <div className="text-xs text-white/60 pl-5">
+                              <a
+                                href={getGoogleMapsUrl(
+                                  tournament.prefecture,
+                                  tournament.city_ward,
+                                  tournament.shop_name,
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
+                              >
+                                <MapPin className="h-3 w-3" />
+                                {tournament.prefecture}, {tournament.city_ward}
+                                <ExternalLink className="h-2 w-2" />
+                              </a>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
