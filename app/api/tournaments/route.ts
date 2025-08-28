@@ -86,7 +86,13 @@ export async function GET() {
     try {
       const data = JSON.parse(responseText)
       console.log("[v0] Successfully parsed JSON from backend")
-      return NextResponse.json(data)
+      if (data && data.data && Array.isArray(data.data)) {
+        console.log("[v0] Returning tournament data array:", data.data.length, "tournaments")
+        return NextResponse.json(data.data)
+      } else {
+        console.log("[v0] Unexpected data structure, using sample data")
+        return NextResponse.json(sampleTournaments)
+      }
     } catch (parseError) {
       console.log("[v0] Failed to parse JSON, using sample data:", parseError)
       return NextResponse.json(sampleTournaments)

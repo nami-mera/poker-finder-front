@@ -254,16 +254,24 @@ export default function TournamentsPage() {
                     className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60"
                   />
                 </div>
-                <button
-                  onClick={fetchData}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
-                >
-                  {loading ? "更新中..." : "データ更新"}
-                </button>
               </div>
 
               <div className="flex flex-col lg:flex-row gap-4 items-end">
+                <div className="w-full lg:w-80 space-y-2">
+                  <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                    <Yen className="h-4 w-4" />
+                    参加費: {formatCurrency(entryFeeRange[0])} - {formatCurrency(entryFeeRange[1])}
+                  </label>
+                  <Slider
+                    value={entryFeeRange}
+                    onValueChange={setEntryFeeRange}
+                    max={100000}
+                    min={0}
+                    step={5000}
+                    className="w-full"
+                  />
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 flex-1">
                   <Select value={locationFilter} onValueChange={setLocationFilter}>
                     <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
@@ -294,20 +302,13 @@ export default function TournamentsPage() {
                   </Select>
                 </div>
 
-                <div className="w-full lg:w-80 space-y-2">
-                  <label className="text-white/80 text-sm font-medium flex items-center gap-2">
-                    <Yen className="h-4 w-4" />
-                    参加費: {formatCurrency(entryFeeRange[0])} - {formatCurrency(entryFeeRange[1])}
-                  </label>
-                  <Slider
-                    value={entryFeeRange}
-                    onValueChange={setEntryFeeRange}
-                    max={100000}
-                    min={0}
-                    step={5000}
-                    className="w-full"
-                  />
-                </div>
+                <button
+                  onClick={fetchData}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
+                >
+                  {loading ? "更新中..." : "データ更新"}
+                </button>
               </div>
             </div>
           </CardContent>
