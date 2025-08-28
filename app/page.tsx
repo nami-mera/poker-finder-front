@@ -52,15 +52,19 @@ export default function TournamentsPage() {
 
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [config, setConfig] = useState<Config | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setRefreshing(true)
+      } else {
+        setInitialLoading(true)
+      }
       setError(null)
 
-      // Fetch tournaments and config data in parallel
       const [tournamentsResponse, configResponse] = await Promise.all([
         fetch("/api/tournaments"),
         fetch("/api/tournaments/config"),
@@ -88,12 +92,16 @@ export default function TournamentsPage() {
       console.error("[v0] API fetch error:", err)
       setError(err instanceof Error ? err.message : "データの取得に失敗しました")
     } finally {
-      setLoading(false)
+      if (isRefresh) {
+        setRefreshing(false)
+      } else {
+        setInitialLoading(false)
+      }
     }
   }
 
   useEffect(() => {
-    fetchData()
+    fetchData(false)
   }, [])
 
   const uniquePrefectures = useMemo(() => {
@@ -168,7 +176,7 @@ export default function TournamentsPage() {
     return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
   }
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div
         className="min-h-screen p-4 md:p-8 flex items-center justify-center"
@@ -303,11 +311,11 @@ export default function TournamentsPage() {
                 </div>
 
                 <button
-                  onClick={fetchData}
-                  disabled={loading}
+                  onClick={() => fetchData(true)}
+                  disabled={refreshing}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
                 >
-                  {loading ? "更新中..." : "データ更新"}
+                  {refreshing ? "更新中..." : "データ更新"}
                 </button>
               </div>
             </div>
@@ -319,11 +327,16 @@ export default function TournamentsPage() {
           <CardHeader>
             <CardTitle className="text-white flex items-center justify-between">
               <span>検索結果 ({filteredTournaments.length}件)</span>
-              <Filter className="h-5 w-5" />
+              <div className="flex items-center gap-2">
+                {refreshing && <div className="text-sm text-white/60">更新中...</div>}
+                <Filter className="h-5 w-5" />
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div
+              className={`overflow-x-auto transition-opacity duration-200 ${refreshing ? "opacity-60" : "opacity-100"}`}
+            >
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/20">
