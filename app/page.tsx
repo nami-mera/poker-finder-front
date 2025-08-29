@@ -15,33 +15,27 @@ interface Tournament {
   event_id: number
   event_name: string
   event_link: string
-  status: string
+  start_date: string
+  start_time: string
+  late_time: string
+  entry_fee: number
+  prizes_original: string
+  reward_categories: string
+  reward_summary: string
   shop_id: number
   shop_name: string
+  shop_link: string
   official_page: string
-  start_time: string
-  game_rule: string
-  entry_fee: number
-  re_entry: string
-  prizes: string
-  prizes_original: string
-  address: string
   prefecture: string
   city_ward: string
-  tel: string
-  total_winners: number
-  total_value_jpy: number
-  reward_categories: string
-  rank_list: string
-  reward_summary: string
   created_at: string
   updated_at: string
 }
 
 interface Config {
   data: {
-    all_city_ward: string[]
     all_prefecture: string[]
+    all_shop_name: string[]
   }
 }
 
@@ -111,10 +105,9 @@ export default function TournamentsPage() {
   }, [config])
 
   const uniqueShops = useMemo(() => {
-    const shops = [...new Set(tournaments.map((t) => t.shop_name))]
-    console.log("[v0] Unique shops:", shops)
-    return shops.sort()
-  }, [tournaments])
+    if (!config?.data?.all_shop_name) return []
+    return config.data.all_shop_name.sort()
+  }, [config])
 
   const filteredTournaments = useMemo(() => {
     console.log("[v0] Filtering tournaments:", tournaments.length, "tournaments")
@@ -127,7 +120,7 @@ export default function TournamentsPage() {
       const matchesSearch =
         tournament.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tournament.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tournament.prizes.toLowerCase().includes(searchTerm.toLowerCase())
+        tournament.reward_summary.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesLocation = locationFilter === "all" || tournament.prefecture === locationFilter
 
@@ -164,17 +157,13 @@ export default function TournamentsPage() {
     return `https://www.google.com/maps/search/?api=1&query=${query}`
   }
 
-  const formatDateTime = (dateTimeString: string) => {
-    const date = new Date(dateTimeString)
-    const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`
-    const timeStr = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
-    return { dateStr, timeStr }
+  const formatDateTime = (timeString: string) => {
+    const dateStr = new Date().toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })
+    return { dateStr, timeStr: timeString }
   }
 
-  const getLateRegTime = (startTime: string) => {
-    const date = new Date(startTime)
-    date.setHours(date.getHours() + 2)
-    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+  const getLateRegTime = (lateTime: string) => {
+    return lateTime
   }
 
   if (initialLoading) {
@@ -352,7 +341,7 @@ export default function TournamentsPage() {
                   <TableBody>
                     {filteredTournaments.map((tournament) => {
                       const { dateStr, timeStr } = formatDateTime(tournament.start_time)
-                      const lateRegTime = getLateRegTime(tournament.start_time)
+                      const lateRegTime = getLateRegTime(tournament.late_time)
 
                       return (
                         <TableRow key={tournament.id} className="border-white/20 hover:bg-white/5">
@@ -371,13 +360,13 @@ export default function TournamentsPage() {
                           <TableCell className="text-white/80 max-w-xs">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="truncate cursor-help">{tournament.prizes.replace(/\n/g, ", ")}</div>
+                                <div className="truncate cursor-help">{tournament.reward_summary}</div>
                               </TooltipTrigger>
                               <TooltipContent
                                 className="max-w-sm bg-gray-900/95 text-white border-gray-700 p-3"
                                 side="top"
                               >
-                                <div className="whitespace-pre-wrap text-sm">{tournament.prizes}</div>
+                                <div className="whitespace-pre-wrap text-sm">{tournament.prizes_original}</div>
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
@@ -401,7 +390,11 @@ export default function TournamentsPage() {
                               <div className="flex items-center gap-1">
                                 <Store className="h-4 w-4" />
                                 <Link
-                                  href={tournament.official_page || `/shop/${encodeURIComponent(tournament.shop_name)}`}
+                                  href={
+                                    tournament.shop_link ||
+                                    tournament.official_page ||
+                                    `/shop/${encodeURIComponent(tournament.shop_name)}`
+                                  }
                                   className="hover:text-blue-300 hover:underline transition-colors"
                                 >
                                   {tournament.shop_name}

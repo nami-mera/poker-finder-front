@@ -3,7 +3,14 @@ import { NextResponse } from "next/server"
 const sampleConfig = {
   data: {
     all_city_ward: ["港区"],
-    all_prefecture: ["东京都"],
+    all_prefecture: ["東京都"],
+    all_shop_name: [
+      "BARRLE IKEBUKURO",
+      "GoodGame Poker Live SHIBUYA",
+      "ResPo",
+      "UNIVERSE",
+      "ガットショット 上野池之端店",
+    ],
   },
 }
 
