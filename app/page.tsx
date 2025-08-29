@@ -43,6 +43,7 @@ export default function TournamentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState("all")
   const [shopFilter, setShopFilter] = useState("all")
+  const [rewardCategoriesFilter, setRewardCategoriesFilter] = useState("all")
   const [entryFeeRange, setEntryFeeRange] = useState([0, 100000])
 
   const [tournaments, setTournaments] = useState<Tournament[]>([])
@@ -60,8 +61,17 @@ export default function TournamentsPage() {
       }
       setError(null)
 
+      // Build query parameters for backend API
+      const params = new URLSearchParams()
+      if (searchTerm) params.append("key_word", searchTerm)
+      if (locationFilter !== "all") params.append("prefecture", locationFilter)
+      if (shopFilter !== "all") params.append("shop_name", shopFilter)
+      if (rewardCategoriesFilter !== "all") params.append("reward_categories", rewardCategoriesFilter)
+      params.append("min_entry_fee", entryFeeRange[0].toString())
+      params.append("max_entry_fee", entryFeeRange[1].toString())
+
       const [tournamentsResponse, configResponse] = await Promise.all([
-        fetch("/api/tournaments"),
+        fetch(`/api/tournaments?${params.toString()}`),
         fetch("/api/tournaments/config"),
       ])
 
@@ -109,11 +119,30 @@ export default function TournamentsPage() {
     return config.data.all_shop_name.sort()
   }, [config])
 
+  const uniqueRewardCategories = useMemo(() => {
+    const categories = new Set<string>()
+    tournaments.forEach((tournament) => {
+      try {
+        const rewardCats = JSON.parse(tournament.reward_categories)
+        if (Array.isArray(rewardCats)) {
+          rewardCats.forEach((cat) => categories.add(cat))
+        }
+      } catch (e) {
+        // Handle non-JSON reward categories
+        if (tournament.reward_categories) {
+          categories.add(tournament.reward_categories)
+        }
+      }
+    })
+    return Array.from(categories).sort()
+  }, [tournaments])
+
   const filteredTournaments = useMemo(() => {
     console.log("[v0] Filtering tournaments:", tournaments.length, "tournaments")
     console.log("[v0] Search term:", searchTerm)
     console.log("[v0] Location filter:", locationFilter)
     console.log("[v0] Shop filter:", shopFilter)
+    console.log("[v0] Reward categories filter:", rewardCategoriesFilter)
     console.log("[v0] Entry fee range:", entryFeeRange)
 
     const filtered = tournaments.filter((tournament) => {
@@ -126,23 +155,36 @@ export default function TournamentsPage() {
 
       const matchesShop = shopFilter === "all" || tournament.shop_name === shopFilter
 
+      let matchesRewardCategories = rewardCategoriesFilter === "all"
+      if (!matchesRewardCategories) {
+        try {
+          const rewardCats = JSON.parse(tournament.reward_categories)
+          if (Array.isArray(rewardCats)) {
+            matchesRewardCategories = rewardCats.includes(rewardCategoriesFilter)
+          }
+        } catch (e) {
+          matchesRewardCategories = tournament.reward_categories === rewardCategoriesFilter
+        }
+      }
+
       const matchesEntryFee = tournament.entry_fee >= entryFeeRange[0] && tournament.entry_fee <= entryFeeRange[1]
 
       console.log("[v0] Tournament:", tournament.event_name, {
         matchesSearch,
         matchesLocation,
         matchesShop,
+        matchesRewardCategories,
         matchesEntryFee,
         prefecture: tournament.prefecture,
         locationFilter,
       })
 
-      return matchesSearch && matchesLocation && matchesShop && matchesEntryFee
+      return matchesSearch && matchesLocation && matchesShop && matchesRewardCategories && matchesEntryFee
     })
 
     console.log("[v0] Filtered tournaments count:", filtered.length)
     return filtered
-  }, [searchTerm, locationFilter, shopFilter, entryFeeRange, tournaments])
+  }, [searchTerm, locationFilter, shopFilter, rewardCategoriesFilter, entryFeeRange, tournaments])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("ja-JP", {
@@ -295,6 +337,20 @@ export default function TournamentsPage() {
                         {uniqueShops.map((shop) => (
                           <SelectItem key={shop} value={shop}>
                             {shop}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={rewardCategoriesFilter} onValueChange={setRewardCategoriesFilter}>
+                      <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
+                        <SelectValue placeholder="賞品カテゴリ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全てのカテゴリ</SelectItem>
+                        {uniqueRewardCategories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
                           </SelectItem>
                         ))}
                       </SelectContent>

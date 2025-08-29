@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 const sampleTournaments = [
   {
@@ -25,16 +26,45 @@ const sampleTournaments = [
   },
 ]
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log("[v0] Attempting to fetch from backend API...")
 
-    const response = await fetch("http://13.231.184.250:5000/api/tournament/query", {
+    const { searchParams } = new URL(request.url)
+    const backendParams = new URLSearchParams()
+
+    // Map frontend parameters to backend parameters
+    if (searchParams.get("key_word")) {
+      backendParams.append("key_word", searchParams.get("key_word")!)
+    }
+    if (searchParams.get("prefecture")) {
+      backendParams.append("prefecture", searchParams.get("prefecture")!)
+    }
+    if (searchParams.get("shop_name")) {
+      backendParams.append("shop_name", searchParams.get("shop_name")!)
+    }
+    if (searchParams.get("reward_categories")) {
+      backendParams.append("reward_categories", searchParams.get("reward_categories")!)
+    }
+    if (searchParams.get("min_entry_fee")) {
+      backendParams.append("min_entry_fee", searchParams.get("min_entry_fee")!)
+    }
+    if (searchParams.get("max_entry_fee")) {
+      backendParams.append("max_entry_fee", searchParams.get("max_entry_fee")!)
+    }
+
+    console.log("[v0] Backend query parameters:", backendParams.toString())
+
+    const backendUrl = `http://13.231.184.250:5000/api/tournament/query${backendParams.toString() ? "?" + backendParams.toString() : ""}`
+    console.log("[v0] Backend URL:", backendUrl)
+
+    const response = await fetch(backendUrl, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; v0-app/1.0)",
+        Connection: "keep-alive",
       },
-      cache: "no-store",
     })
 
     console.log("[v0] Backend response status:", response.status)

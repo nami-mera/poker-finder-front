@@ -21,7 +21,9 @@ export async function GET() {
     const response = await fetch("http://13.231.184.250:5000/api/tournament/config", {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; v0-app/1.0)",
+        Connection: "keep-alive",
       },
       cache: "no-store",
     })
