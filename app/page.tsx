@@ -44,7 +44,7 @@ export default function TournamentsPage() {
   const [locationFilter, setLocationFilter] = useState("all")
   const [shopFilter, setShopFilter] = useState("all")
   const [rewardCategoriesFilter, setRewardCategoriesFilter] = useState("all")
-  const [entryFeeRange, setEntryFeeRange] = useState([0, 100000])
+  const [entryFeeRange, setEntryFeeRange] = useState([0, 30000])
 
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [config, setConfig] = useState<Config | null>(null)
@@ -213,7 +213,7 @@ export default function TournamentsPage() {
       <div
         className="min-h-screen p-4 md:p-8 flex items-center justify-center"
         style={{
-          backgroundImage: "url('/bg.jpeg')",
+          backgroundImage: "url('/bg2.jpeg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -234,7 +234,7 @@ export default function TournamentsPage() {
       <div
         className="min-h-screen p-4 md:p-8 flex items-center justify-center"
         style={{
-          backgroundImage: "url('/bg.jpeg')",
+          backgroundImage: "url('/bg2.jpeg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -262,7 +262,7 @@ export default function TournamentsPage() {
       <div
         className="min-h-screen p-4 md:p-8"
         style={{
-          backgroundImage: "url('/bg.jpeg')",
+          backgroundImage: "url('/bg2.jpeg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -270,19 +270,14 @@ export default function TournamentsPage() {
       >
         <div className="absolute inset-0 bg-black/30 -z-10" />
         <div className="max-w-7xl mx-auto space-y-6 relative">
-          {/* Header */}
+          {/* Filters */}
           <Card className="backdrop-blur-md bg-white/10 border-white/20">
             <CardHeader>
               <CardTitle className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
                 <Trophy className="h-8 w-8" />
-                日本ポーカートーナメント検索
+                ポーカートーナメント検索
               </CardTitle>
-              <p className="text-white/80">日本全国のポーカートーナメント情報を検索・フィルタリングできます</p>
             </CardHeader>
-          </Card>
-
-          {/* Filters */}
-          <Card className="backdrop-blur-md bg-white/10 border-white/20">
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="flex gap-2">
@@ -306,9 +301,9 @@ export default function TournamentsPage() {
                     <Slider
                       value={entryFeeRange}
                       onValueChange={setEntryFeeRange}
-                      max={100000}
+                      max={30000}
                       min={0}
-                      step={5000}
+                      step={1000}
                       className="w-full"
                     />
                   </div>
@@ -413,18 +408,8 @@ export default function TournamentsPage() {
                           <TableCell className="text-white/80 font-semibold">
                             {formatCurrency(tournament.entry_fee)}
                           </TableCell>
-                          <TableCell className="text-white/80 max-w-xs">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="truncate cursor-help">{tournament.reward_summary}</div>
-                              </TooltipTrigger>
-                              <TooltipContent
-                                className="max-w-sm bg-gray-900/95 text-white border-gray-700 p-3"
-                                side="top"
-                              >
-                                <div className="whitespace-pre-wrap text-sm">{tournament.reward_summary}</div>
-                              </TooltipContent>
-                            </Tooltip>
+                          <TableCell className="text-white/80 max-w-xs break-words truncate">
+                              <div>{tournament.reward_summary}</div>
                           </TableCell>
                           <TableCell className="text-white/80">
                             <div className="flex items-center gap-1">
