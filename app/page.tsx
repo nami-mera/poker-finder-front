@@ -422,7 +422,7 @@ export default function TournamentsPage() {
                                 className="max-w-sm bg-gray-900/95 text-white border-gray-700 p-3"
                                 side="top"
                               >
-                                <div className="whitespace-pre-wrap text-sm">{tournament.prizes_original}</div>
+                                <div className="whitespace-pre-wrap text-sm">{tournament.reward_summary}</div>
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
