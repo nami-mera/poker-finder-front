@@ -13,12 +13,14 @@ const sampleConfig = {
     ],
   },
 }
+const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc";
+
 
 export async function GET() {
   try {
     console.log("[v0] Attempting to fetch config from backend API...")
 
-    const response = await fetch("http://13.231.184.250:5000/api/tournament/config", {
+    const response = await fetch(`${BACKEND_BASE_URL}/api/tournament/config`, {
       method: "GET",
       headers: {
         Accept: "application/json",
