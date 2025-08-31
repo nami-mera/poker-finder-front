@@ -26,9 +26,6 @@ const sampleTournaments = [
   },
 ]
 
-// ===== 域名和端口集中配置，便于本地/线上切换 =====
-const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc";
-
 export async function GET(request: NextRequest) {
   try {
     console.log("[v0] Attempting to fetch from backend API...")
@@ -58,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Backend query parameters:", backendParams.toString())
 
-    const backendUrl = `${BACKEND_BASE_URL}/api/tournament/query${backendParams.toString() ? "?" + backendParams.toString() : ""}`
+    const backendUrl = `http://13.231.184.250:5000/api/tournament/query${backendParams.toString() ? "?" + backendParams.toString() : ""}`
     console.log("[v0] Backend URL:", backendUrl)
 
     const response = await fetch(backendUrl, {

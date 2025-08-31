@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server"
 
-// ===== 域名和端口集中配置，便于本地/线上切换 =====
-const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc";
-
 const sampleConfig = {
   data: {
     all_city_ward: ["港区"],
@@ -21,7 +18,7 @@ export async function GET() {
   try {
     console.log("[v0] Attempting to fetch config from backend API...")
 
-    const response = await fetch(`${BACKEND_BASE_URL}/api/tournament/config`, {
+    const response = await fetch("http://13.231.184.250:5000/api/tournament/config", {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -56,4 +53,3 @@ export async function GET() {
     return NextResponse.json(sampleConfig)
   }
 }
-
