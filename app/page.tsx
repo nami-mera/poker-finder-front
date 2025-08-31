@@ -275,7 +275,7 @@ export default function TournamentsPage() {
             <CardHeader>
               <CardTitle className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
                 <Trophy className="h-8 w-8" />
-                ポーカートーナメント検索
+                ポーカートーナメントを選ぶ
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
