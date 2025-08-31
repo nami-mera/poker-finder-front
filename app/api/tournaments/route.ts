@@ -27,7 +27,7 @@ const sampleTournaments = [
 ]
 
 // ===== 域名和端口集中配置，便于本地/线上切换 =====
-const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://poker.eriri.cc";
+const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc";
 
 export async function GET(request: NextRequest) {
   try {
