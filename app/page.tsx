@@ -3,11 +3,24 @@
 import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Search, MapPin, Calendar, Trophy, Pen as Yen, Clock, Store, ExternalLink } from "lucide-react"
+import {
+  Search,
+  MapPin,
+  Calendar,
+  Trophy,
+  Pen as Yen,
+  Clock,
+  Store,
+  ExternalLink,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Slider } from "@/components/ui/slider"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 
 interface Tournament {
@@ -39,12 +52,21 @@ interface Config {
   }
 }
 
+type SortField = "entry_fee" | "start_date" | null
+type SortDirection = "asc" | "desc"
+
 export default function TournamentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState("all")
-  const [shopFilter, setShopFilter] = useState("all")
+  const [shopFilter, setShopFilter] = useState<string[]>([])
   const [rewardCategoriesFilter, setRewardCategoriesFilter] = useState("all")
   const [entryFeeRange, setEntryFeeRange] = useState([0, 30000])
+  const [hasNoUpperLimit, setHasNoUpperLimit] = useState(false)
+
+  const [dateRange, setDateRange] = useState([0, 7]) // 0 = today, positive = future, negative = past
+
+  const [sortField, setSortField] = useState<SortField>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [config, setConfig] = useState<Config | null>(null)
@@ -61,14 +83,21 @@ export default function TournamentsPage() {
       }
       setError(null)
 
-      // Build query parameters for backend API
+      const today = new Date()
+      const startDate = new Date(today.getTime() + dateRange[0] * 24 * 60 * 60 * 1000)
+      const endDate = new Date(today.getTime() + dateRange[1] * 24 * 60 * 60 * 1000)
+
       const params = new URLSearchParams()
       if (searchTerm) params.append("key_word", searchTerm)
       if (locationFilter !== "all") params.append("prefecture", locationFilter)
-      if (shopFilter !== "all") params.append("shop_name", shopFilter)
+      if (shopFilter.length > 0) params.append("shop_name", shopFilter.join(","))
       if (rewardCategoriesFilter !== "all") params.append("reward_categories", rewardCategoriesFilter)
       params.append("min_entry_fee", entryFeeRange[0].toString())
-      params.append("max_entry_fee", entryFeeRange[1].toString())
+      if (!hasNoUpperLimit) {
+        params.append("max_entry_fee", entryFeeRange[1].toString())
+      }
+      params.append("start_date", `${startDate.toISOString().split("T")[0]} 00:00:00`)
+      params.append("end_date", `${endDate.toISOString().split("T")[0]} 23:59:59`)
 
       const [tournamentsResponse, configResponse] = await Promise.all([
         fetch(`/api/tournaments?${params.toString()}`),
@@ -128,7 +157,6 @@ export default function TournamentsPage() {
           rewardCats.forEach((cat) => categories.add(cat))
         }
       } catch (e) {
-        // Handle non-JSON reward categories
         if (tournament.reward_categories) {
           categories.add(tournament.reward_categories)
         }
@@ -153,7 +181,7 @@ export default function TournamentsPage() {
 
       const matchesLocation = locationFilter === "all" || tournament.prefecture === locationFilter
 
-      const matchesShop = shopFilter === "all" || tournament.shop_name === shopFilter
+      const matchesShop = shopFilter.length === 0 || shopFilter.includes(tournament.shop_name)
 
       let matchesRewardCategories = rewardCategoriesFilter === "all"
       if (!matchesRewardCategories) {
@@ -167,7 +195,9 @@ export default function TournamentsPage() {
         }
       }
 
-      const matchesEntryFee = tournament.entry_fee >= entryFeeRange[0] && tournament.entry_fee <= entryFeeRange[1]
+      const matchesEntryFee = hasNoUpperLimit
+        ? tournament.entry_fee >= entryFeeRange[0]
+        : tournament.entry_fee >= entryFeeRange[0] && tournament.entry_fee <= entryFeeRange[1]
 
       console.log("[v0] Tournament:", tournament.event_name, {
         matchesSearch,
@@ -184,7 +214,42 @@ export default function TournamentsPage() {
 
     console.log("[v0] Filtered tournaments count:", filtered.length)
     return filtered
-  }, [searchTerm, locationFilter, shopFilter, rewardCategoriesFilter, entryFeeRange, tournaments])
+  }, [searchTerm, locationFilter, shopFilter, rewardCategoriesFilter, entryFeeRange, hasNoUpperLimit, tournaments])
+
+  const sortedTournaments = useMemo(() => {
+    if (!sortField) return filteredTournaments
+
+    return [...filteredTournaments].sort((a, b) => {
+      let aValue: any, bValue: any
+
+      if (sortField === "entry_fee") {
+        aValue = a.entry_fee
+        bValue = b.entry_fee
+      } else if (sortField === "start_date") {
+        aValue = new Date(a.start_date).getTime()
+        bValue = new Date(b.start_date).getTime()
+      }
+
+      if (sortDirection === "asc") {
+        return aValue - bValue
+      } else {
+        return bValue - aValue
+      }
+    })
+  }, [filteredTournaments, sortField, sortDirection])
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  const handleShopToggle = (shopName: string) => {
+    setShopFilter((prev) => (prev.includes(shopName) ? prev.filter((s) => s !== shopName) : [...prev, shopName]))
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("ja-JP", {
@@ -206,6 +271,31 @@ export default function TournamentsPage() {
 
   const getLateRegTime = (lateTime: string) => {
     return lateTime
+  }
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />
+    return sortDirection === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+  }
+
+  const formatDateRange = () => {
+    const today = new Date()
+    const startDate = new Date(today.getTime() + dateRange[0] * 24 * 60 * 60 * 1000)
+    const endDate = new Date(today.getTime() + dateRange[1] * 24 * 60 * 60 * 1000)
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })
+    }
+
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`
+  }
+
+  const getDayLabel = (dayOffset: number) => {
+    if (dayOffset === 0) return "今日"
+    if (dayOffset === 1) return "明日"
+    if (dayOffset === -1) return "昨日"
+    if (dayOffset > 0) return `${dayOffset}日後`
+    return `${Math.abs(dayOffset)}日前`
   }
 
   if (initialLoading) {
@@ -295,8 +385,29 @@ export default function TournamentsPage() {
                 <div className="flex flex-col lg:flex-row gap-4 items-end">
                   <div className="w-full lg:w-80 space-y-2">
                     <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      開催日: {formatDateRange()} ({getDayLabel(dateRange[0])} - {getDayLabel(dateRange[1])})
+                    </label>
+                    <Slider
+                      value={dateRange}
+                      onValueChange={setDateRange}
+                      max={7}
+                      min={-7}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-white/60">
+                      <span>7日前</span>
+                      <span>今日</span>
+                      <span>7日後</span>
+                    </div>
+                  </div>
+
+                  <div className="w-full lg:w-80 space-y-2">
+                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
                       <Yen className="h-4 w-4" />
-                      参加費: {formatCurrency(entryFeeRange[0])} - {formatCurrency(entryFeeRange[1])}
+                      参加費: {formatCurrency(entryFeeRange[0])} -{" "}
+                      {hasNoUpperLimit ? "上限なし" : formatCurrency(entryFeeRange[1])}
                     </label>
                     <Slider
                       value={entryFeeRange}
@@ -305,7 +416,14 @@ export default function TournamentsPage() {
                       min={0}
                       step={1000}
                       className="w-full"
+                      disabled={hasNoUpperLimit}
                     />
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="no-upper-limit" checked={hasNoUpperLimit} onCheckedChange={setHasNoUpperLimit} />
+                      <label htmlFor="no-upper-limit" className="text-white/80 text-sm">
+                        上限なし
+                      </label>
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4 flex-1">
@@ -323,19 +441,29 @@ export default function TournamentsPage() {
                       </SelectContent>
                     </Select>
 
-                    <Select value={shopFilter} onValueChange={setShopFilter}>
-                      <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
-                        <SelectValue placeholder="店舗名" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">全ての店舗</SelectItem>
-                        {uniqueShops.map((shop) => (
-                          <SelectItem key={shop} value={shop}>
-                            {shop}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="w-full sm:w-48">
+                      <Select>
+                        <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                          <SelectValue
+                            placeholder={shopFilter.length === 0 ? "店舗名" : `${shopFilter.length}店舗選択中`}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {uniqueShops.map((shop) => (
+                            <div key={shop} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100">
+                              <Checkbox
+                                id={`shop-${shop}`}
+                                checked={shopFilter.includes(shop)}
+                                onCheckedChange={() => handleShopToggle(shop)}
+                              />
+                              <label htmlFor={`shop-${shop}`} className="text-sm cursor-pointer flex-1">
+                                {shop}
+                              </label>
+                            </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     <Select value={rewardCategoriesFilter} onValueChange={setRewardCategoriesFilter}>
                       <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
@@ -368,7 +496,7 @@ export default function TournamentsPage() {
           <Card className="backdrop-blur-md bg-white/10 border-white/20">
             <CardHeader>
               <CardTitle className="text-white flex items-center justify-between">
-                <span>検索結果 ({filteredTournaments.length}件)</span>
+                <span>検索結果 ({sortedTournaments.length}件)</span>
                 <div className="flex items-center gap-2">
                   {refreshing && <div className="text-sm text-white/60">更新中...</div>}
                 </div>
@@ -381,35 +509,62 @@ export default function TournamentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/20">
-                      <TableHead className="text-white/80">トーナメント名</TableHead>
-                      <TableHead className="text-white/80">参加費</TableHead>
-                      <TableHead className="text-white/80">賞金詳細</TableHead>
-                      <TableHead className="text-white/80">開催日</TableHead>
+                      <TableHead className="text-white/80 w-64">トーナメント名</TableHead>
+                      <TableHead
+                        className="text-white/80 cursor-pointer hover:text-white transition-colors"
+                        onClick={() => handleSort("entry_fee")}
+                      >
+                        <div className="flex items-center gap-1">
+                          参加費
+                          {getSortIcon("entry_fee")}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-white/80 w-64">賞金詳細</TableHead>
+                      <TableHead
+                        className="text-white/80 cursor-pointer hover:text-white transition-colors"
+                        onClick={() => handleSort("start_date")}
+                      >
+                        <div className="flex items-center gap-1">
+                          開催日
+                          {getSortIcon("start_date")}
+                        </div>
+                      </TableHead>
                       <TableHead className="text-white/80">開始時間</TableHead>
                       <TableHead className="text-white/80">店舗・開催地</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTournaments.map((tournament) => {
+                    {sortedTournaments.map((tournament) => {
                       const { dateStr, timeStr } = formatDateTime(tournament.start_time)
                       const lateRegTime = getLateRegTime(tournament.late_time)
 
                       return (
                         <TableRow key={tournament.id} className="border-white/20 hover:bg-white/5">
-                          <TableCell className="text-white font-medium">
+                          <TableCell className="text-white font-medium w-64">
                             <Link
                               href={tournament.event_link || `/tournament/${tournament.id}`}
-                              className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
+                              className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1 break-words"
                             >
-                              {tournament.event_name}
-                              <ExternalLink className="h-3 w-3" />
+                              <span className="break-words">{tournament.event_name}</span>
+                              <ExternalLink className="h-3 w-3 flex-shrink-0" />
                             </Link>
                           </TableCell>
                           <TableCell className="text-white/80 font-semibold">
                             {formatCurrency(tournament.entry_fee)}
                           </TableCell>
-                          <TableCell className="text-white/80 max-w-xs break-words truncate">
-                              <div>{tournament.reward_summary}</div>
+                          <TableCell className="text-white/80 w-64">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="break-words whitespace-normal cursor-help">
+                                  {tournament.reward_summary}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-md p-4 bg-gray-900 text-white border border-gray-700">
+                                <div className="whitespace-pre-wrap text-sm">
+                                  {tournament.prizes_original.replace(/\\n/g, "\n")}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           </TableCell>
                           <TableCell className="text-white/80">
                             <div className="flex items-center gap-1">
@@ -436,7 +591,7 @@ export default function TournamentsPage() {
                                     tournament.official_page ||
                                     `/shop/${encodeURIComponent(tournament.shop_name)}`
                                   }
-                                  className="hover:text-blue-300 hover:underline transition-colors"
+                                  className="hover:text-blue-300 hover:underline transition-colors break-words"
                                 >
                                   {tournament.shop_name}
                                 </Link>
@@ -466,7 +621,7 @@ export default function TournamentsPage() {
                 </Table>
               </div>
 
-              {filteredTournaments.length === 0 && (
+              {sortedTournaments.length === 0 && (
                 <div className="text-center py-8 text-white/60">
                   検索条件に一致するトーナメントが見つかりませんでした
                 </div>
