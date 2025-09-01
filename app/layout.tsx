@@ -10,9 +10,9 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: "トーナメントナビ",
-  description: "トーナメントナビ",
-  generator: "トーナメントナビ",
+  title: "トーナメント",
+  description: "トーナメント",
+  generator: "トーナメント",
 }
 
 export default function RootLayout({

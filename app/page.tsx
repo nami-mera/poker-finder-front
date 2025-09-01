@@ -63,7 +63,10 @@ export default function TournamentsPage() {
   const [entryFeeRange, setEntryFeeRange] = useState([0, 30000])
   const [hasNoUpperLimit, setHasNoUpperLimit] = useState(false)
 
-  const [dateRange, setDateRange] = useState([0, 7]) // 0 = today, positive = future, negative = past
+  const today = new Date().toISOString().split("T")[0]
+  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  const [startDate, setStartDate] = useState(today)
+  const [endDate, setEndDate] = useState(sevenDaysLater)
 
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
@@ -83,10 +86,6 @@ export default function TournamentsPage() {
       }
       setError(null)
 
-      const today = new Date()
-      const startDate = new Date(today.getTime() + dateRange[0] * 24 * 60 * 60 * 1000)
-      const endDate = new Date(today.getTime() + dateRange[1] * 24 * 60 * 60 * 1000)
-
       const params = new URLSearchParams()
       if (searchTerm) params.append("key_word", searchTerm)
       if (locationFilter !== "all") params.append("prefecture", locationFilter)
@@ -96,8 +95,8 @@ export default function TournamentsPage() {
       if (!hasNoUpperLimit) {
         params.append("max_entry_fee", entryFeeRange[1].toString())
       }
-      params.append("start_date", `${startDate.toISOString().split("T")[0]} 00:00:00`)
-      params.append("end_date", `${endDate.toISOString().split("T")[0]} 23:59:59`)
+      params.append("start_date", `${startDate} 00:00:00`)
+      params.append("end_date", `${endDate} 23:59:59`)
 
       const [tournamentsResponse, configResponse] = await Promise.all([
         fetch(`/api/tournaments?${params.toString()}`),
@@ -280,8 +279,8 @@ export default function TournamentsPage() {
 
   const formatDateRange = () => {
     const today = new Date()
-    const startDate = new Date(today.getTime() + dateRange[0] * 24 * 60 * 60 * 1000)
-    const endDate = new Date(today.getTime() + dateRange[1] * 24 * 60 * 60 * 1000)
+    const startDate = new Date(today.getTime() + 0 * 24 * 60 * 60 * 1000)
+    const endDate = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
 
     const formatDate = (date: Date) => {
       return date.toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })
@@ -359,7 +358,7 @@ export default function TournamentsPage() {
         }}
       >
         <div className="absolute inset-0 bg-black/30 -z-10" />
-        <div className="max-w-7xl mx-auto space-y-6 relative">
+        <div className="w-full space-y-6 relative">
           {/* Filters */}
           <Card className="backdrop-blur-md bg-white/10 border-white/20">
             <CardHeader>
@@ -370,40 +369,84 @@ export default function TournamentsPage() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      開催日（開始）
+                    </label>
                     <Input
-                      placeholder="トーナメント名、店舗名、賞金詳細で検索..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full bg-white/10 border-white/20 text-white"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      開催日（終了）
+                    </label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      都道府県
+                    </label>
+                    <Select value={locationFilter} onValueChange={setLocationFilter}>
+                      <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
+                        <SelectValue placeholder="都道府県" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全ての都道府県</SelectItem>
+                        {uniquePrefectures.map((prefecture) => (
+                          <SelectItem key={prefecture} value={prefecture}>
+                            {prefecture}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                      <Store className="h-4 w-4" />
+                      店舗名
+                    </label>
+                    <Select>
+                      <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
+                        <SelectValue
+                          placeholder={shopFilter.length === 0 ? "店舗名" : `${shopFilter.length}店舗選択中`}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueShops.map((shop) => (
+                          <div key={shop} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100">
+                            <Checkbox
+                              id={`shop-${shop}`}
+                              checked={shopFilter.includes(shop)}
+                              onCheckedChange={() => handleShopToggle(shop)}
+                            />
+                            <label htmlFor={`shop-${shop}`} className="text-sm cursor-pointer flex-1">
+                              {shop}
+                            </label>
+                          </div>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-4 items-end">
-                  <div className="w-full lg:w-80 space-y-2">
-                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      開催日: {formatDateRange()} ({getDayLabel(dateRange[0])} - {getDayLabel(dateRange[1])})
-                    </label>
-                    <Slider
-                      value={dateRange}
-                      onValueChange={setDateRange}
-                      max={7}
-                      min={-7}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-white/60">
-                      <span>7日前</span>
-                      <span>今日</span>
-                      <span>7日後</span>
-                    </div>
-                  </div>
-
-                  <div className="w-full lg:w-80 space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                  <div className="lg:col-span-2 space-y-2">
                     <label className="text-white/80 text-sm font-medium flex items-center gap-2">
                       <Yen className="h-4 w-4" />
                       参加費: {formatCurrency(entryFeeRange[0])} -{" "}
@@ -426,47 +469,13 @@ export default function TournamentsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                    <Select value={locationFilter} onValueChange={setLocationFilter}>
-                      <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
-                        <SelectValue placeholder="都道府県" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">全ての都道府県</SelectItem>
-                        {uniquePrefectures.map((prefecture) => (
-                          <SelectItem key={prefecture} value={prefecture}>
-                            {prefecture}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <div className="w-full sm:w-48">
-                      <Select>
-                        <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                          <SelectValue
-                            placeholder={shopFilter.length === 0 ? "店舗名" : `${shopFilter.length}店舗選択中`}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {uniqueShops.map((shop) => (
-                            <div key={shop} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100">
-                              <Checkbox
-                                id={`shop-${shop}`}
-                                checked={shopFilter.includes(shop)}
-                                onCheckedChange={() => handleShopToggle(shop)}
-                              />
-                              <label htmlFor={`shop-${shop}`} className="text-sm cursor-pointer flex-1">
-                                {shop}
-                              </label>
-                            </div>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                      <Trophy className="h-4 w-4" />
+                      賞品カテゴリ
+                    </label>
                     <Select value={rewardCategoriesFilter} onValueChange={setRewardCategoriesFilter}>
-                      <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
+                      <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
                         <SelectValue placeholder="賞品カテゴリ" />
                       </SelectTrigger>
                       <SelectContent>
@@ -480,13 +489,30 @@ export default function TournamentsPage() {
                     </Select>
                   </div>
 
-                  <button
-                    onClick={() => fetchData(true)}
-                    disabled={refreshing}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
-                  >
-                    {refreshing ? "更新中..." : "データ更新"}
-                  </button>
+                  <div className="space-y-2">
+                    <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      キーワード検索
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
+                        <Input
+                          placeholder="トーナメント名、店舗名、賞金詳細で検索..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60"
+                        />
+                      </div>
+                      <button
+                        onClick={() => fetchData(true)}
+                        disabled={refreshing}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
+                      >
+                        {refreshing ? "更新中..." : "データ更新"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -509,9 +535,9 @@ export default function TournamentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/20">
-                      <TableHead className="text-white/80 w-64">トーナメント名</TableHead>
+                      <TableHead className="text-white/80 min-w-[200px]">トーナメント名</TableHead>
                       <TableHead
-                        className="text-white/80 cursor-pointer hover:text-white transition-colors"
+                        className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[100px]"
                         onClick={() => handleSort("entry_fee")}
                       >
                         <div className="flex items-center gap-1">
@@ -519,9 +545,9 @@ export default function TournamentsPage() {
                           {getSortIcon("entry_fee")}
                         </div>
                       </TableHead>
-                      <TableHead className="text-white/80 w-64">賞金詳細</TableHead>
+                      <TableHead className="text-white/80 min-w-[200px]">賞金詳細</TableHead>
                       <TableHead
-                        className="text-white/80 cursor-pointer hover:text-white transition-colors"
+                        className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[100px]"
                         onClick={() => handleSort("start_date")}
                       >
                         <div className="flex items-center gap-1">
@@ -529,8 +555,8 @@ export default function TournamentsPage() {
                           {getSortIcon("start_date")}
                         </div>
                       </TableHead>
-                      <TableHead className="text-white/80">開始時間</TableHead>
-                      <TableHead className="text-white/80">店舗・開催地</TableHead>
+                      <TableHead className="text-white/80 min-w-[120px]">開始時間</TableHead>
+                      <TableHead className="text-white/80 min-w-[200px]">店舗・開催地</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -540,7 +566,7 @@ export default function TournamentsPage() {
 
                       return (
                         <TableRow key={tournament.id} className="border-white/20 hover:bg-white/5">
-                          <TableCell className="text-white font-medium w-64">
+                          <TableCell className="text-white font-medium">
                             <Link
                               href={tournament.event_link || `/tournament/${tournament.id}`}
                               className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1 break-words"
@@ -552,7 +578,7 @@ export default function TournamentsPage() {
                           <TableCell className="text-white/80 font-semibold">
                             {formatCurrency(tournament.entry_fee)}
                           </TableCell>
-                          <TableCell className="text-white/80 w-64">
+                          <TableCell className="text-white/80">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="break-words whitespace-normal cursor-help">
