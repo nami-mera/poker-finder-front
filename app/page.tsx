@@ -593,7 +593,7 @@ export default function TournamentsPage() {
                         {getSortIcon("shop_name")}
                       </div>
                     </TableHead>
-                    <TableHead className="text-white/80 w-80">トーナメント名</TableHead>
+                    <TableHead className="text-white/80 w-32">トーナメント名</TableHead>
                     <TableHead
                       className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[100px]"
                       onClick={() => handleSort("entry_fee")}
@@ -603,7 +603,7 @@ export default function TournamentsPage() {
                         {getSortIcon("entry_fee")}
                       </div>
                     </TableHead>
-                    <TableHead className="text-white/80 w-96">賞金詳細</TableHead>
+                    <TableHead className="text-white/80 w-60">賞金詳細</TableHead>
                     <TableHead
                       className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[100px]"
                       onClick={() => handleSort("start_date")}
