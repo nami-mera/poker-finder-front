@@ -399,7 +399,7 @@ export default function TournamentsPage() {
         {/* Filters */}
         <Card className="backdrop-blur-md bg-white/10 border-white/20">
           <CardHeader>
-            <CardTitle className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+            <CardTitle className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
               <Trophy className="h-8 w-8" />
               ポーカートーナメントを選ぶ
             </CardTitle>
