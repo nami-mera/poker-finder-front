@@ -302,7 +302,7 @@ export default function TournamentsPage() {
       <div
         className="min-h-screen p-4 md:p-8 flex items-center justify-center"
         style={{
-          backgroundImage: "url('/bg2.jpeg')",
+          backgroundImage: "url('/bg.jpeg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -323,7 +323,7 @@ export default function TournamentsPage() {
       <div
         className="min-h-screen p-4 md:p-8 flex items-center justify-center"
         style={{
-          backgroundImage: "url('/bg2.jpeg')",
+          backgroundImage: "url('/bg.jpeg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -351,7 +351,7 @@ export default function TournamentsPage() {
       <div
         className="min-h-screen p-4 md:p-8"
         style={{
-          backgroundImage: "url('/bg2.jpeg')",
+          backgroundImage: "url('/bg.jpeg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -604,7 +604,7 @@ export default function TournamentsPage() {
                                 <Clock className="h-4 w-4" />
                                 {timeStr}
                               </div>
-                              <div className="text-xs text-white/60 pl-5">遅刻登録: {lateRegTime}</div>
+                              <div className="text-xs text-white/60 pl-5">受付締切: {lateRegTime}</div>
                             </div>
                           </TableCell>
                           <TableCell className="text-white/80">
