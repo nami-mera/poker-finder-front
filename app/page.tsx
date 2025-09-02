@@ -593,7 +593,7 @@ export default function TournamentsPage() {
                         {getSortIcon("shop_name")}
                       </div>
                     </TableHead>
-                    <TableHead className="text-white/80 w-64">トーナメント名</TableHead>
+                    <TableHead className="text-white/80 w-50">トーナメント名</TableHead>
                     <TableHead
                       className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[100px]"
                       onClick={() => handleSort("entry_fee")}
@@ -603,7 +603,7 @@ export default function TournamentsPage() {
                         {getSortIcon("entry_fee")}
                       </div>
                     </TableHead>
-                    <TableHead className="text-white/80 w-24">賞金詳細</TableHead>
+                    <TableHead className="text-white/80 w-50">賞金詳細</TableHead>
                     <TableHead
                       className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[100px]"
                       onClick={() => handleSort("start_date")}
@@ -633,6 +633,8 @@ export default function TournamentsPage() {
                                   tournament.official_page ||
                                   `/shop/${encodeURIComponent(tournament.shop_name)}`
                                 }
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="hover:text-blue-300 hover:underline transition-colors break-words"
                               >
                                 {tournament.shop_name}
@@ -656,9 +658,11 @@ export default function TournamentsPage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-white w-64 font-medium">
+                        <TableCell className="text-white w-32 font-medium">
                           <Link
                             href={tournament.event_link || `/tournament/${tournament.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="hover:text-blue-300 hover:underline transition-colors flex items-center gap-1"
                           >
                             <span className="break-words whitespace-normal leading-tight">{tournament.event_name}</span>
@@ -668,7 +672,7 @@ export default function TournamentsPage() {
                         <TableCell className="text-white/80 font-semibold">
                           {formatCurrency(tournament.entry_fee)}
                         </TableCell>
-                        <TableCell className="text-white/80 w-24">
+                        <TableCell className="text-white/80 w-60">
                           <div className="flex flex-col gap-1">
                             {formatRewardSummary(tournament.reward_summary).map((item, index) => (
                               <span key={index} className="bg-white/10 px-2 py-1 rounded text-xs">
