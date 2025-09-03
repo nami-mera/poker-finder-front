@@ -307,8 +307,8 @@ export default function TournamentsPage() {
 
   const formatDateRange = () => {
     const today = new Date()
-    const startDate = new Date(today.getTime() + 0 * 24 * 60 * 60 * 1000)
-    const endDate = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const startDate = new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000)
+    const endDate = new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000)
 
     const formatDate = (date: Date) => {
       return date.toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })
