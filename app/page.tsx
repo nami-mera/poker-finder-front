@@ -292,7 +292,17 @@ export default function TournamentsPage() {
 
   const formatDateTime = (timeString: string) => {
     const dateStr = new Date().toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })
-    return { dateStr, timeStr: timeString }
+    const timeStr = timeString.split(" ")[1] // Assuming timeString is in "YYYY-MM-DD HH:MM:SS" format
+    return { dateStr, timeStr }
+  }
+
+  const formatStartDate = (startDate: string) => {
+    const date = new Date(startDate)
+    return date.toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })
+  }
+
+  const getStartTime = (startTime: string) => {
+    return startTime
   }
 
   const getLateRegTime = (lateTime: string) => {
@@ -618,6 +628,7 @@ export default function TournamentsPage() {
                 <TableBody>
                   {paginatedTournaments.map((tournament) => {
                     const { dateStr, timeStr } = formatDateTime(tournament.start_time)
+                    const startTime = getStartTime(tournament.start_time)
                     const lateRegTime = getLateRegTime(tournament.late_time)
 
                     return (
@@ -683,14 +694,14 @@ export default function TournamentsPage() {
                         <TableCell className="text-white/80">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {dateStr}
+                            {formatStartDate(tournament.start_date)}
                           </div>
                         </TableCell>
                         <TableCell className="text-white/80">
                           <div className="space-y-1">
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
-                              {timeStr}
+                              {startTime}
                             </div>
                             <div className="text-xs text-white/60 pl-5">受付締切: {lateRegTime}</div>
                           </div>
