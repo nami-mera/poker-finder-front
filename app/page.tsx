@@ -62,10 +62,9 @@ export default function TournamentsPage() {
   const [entryFeeRange, setEntryFeeRange] = useState([0, 30000])
   const [hasNoUpperLimit, setHasNoUpperLimit] = useState(false)
 
-  const today = new Date().toISOString().split("T")[0]
-  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
-  const [startDate, setStartDate] = useState(today)
-  const [endDate, setEndDate] = useState(sevenDaysLater)
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  const [startDate, setStartDate] = useState(tomorrow)
+  const [endDate, setEndDate] = useState(tomorrow)
 
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
