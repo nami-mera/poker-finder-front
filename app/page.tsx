@@ -100,8 +100,8 @@ export default function TournamentsPage() {
       params.append("end_date", `${endDate} 23:59:59`)
 
       const [tournamentsResponse, configResponse] = await Promise.all([
-        fetch(`/api/tournaments?${params.toString()}`),
-        fetch("/api/tournaments/config"),
+        fetch(`/api/tournament/query?${params.toString()}`),
+        fetch("/api/tournament/config"),
       ])
 
       if (!tournamentsResponse.ok) {

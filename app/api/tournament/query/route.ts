@@ -7,7 +7,7 @@ const sampleTournaments = [
     event_id: 316169,
     event_name: "Daily Turbo 3K★",
     event_link: "https://pokerguild.jp/tourneys/316169",
-    start_date: "13:00",
+    start_date: "2025-09-03",
     start_time: "13:00",
     late_time: "16:00",
     entry_fee: 3000,
@@ -43,6 +43,9 @@ export async function GET(request: NextRequest) {
     if (searchParams.get("prefecture")) {
       backendParams.append("prefecture", searchParams.get("prefecture")!)
     }
+    if (searchParams.get("city_ward")) {
+      backendParams.append("city_ward", searchParams.get("city_ward")!)
+    }
     if (searchParams.get("shop_name")) {
       backendParams.append("shop_name", searchParams.get("shop_name")!)
     }
@@ -54,6 +57,12 @@ export async function GET(request: NextRequest) {
     }
     if (searchParams.get("max_entry_fee")) {
       backendParams.append("max_entry_fee", searchParams.get("max_entry_fee")!)
+    }
+    if (searchParams.get("start_date")) {
+      backendParams.append("start_date", searchParams.get("start_date")!)
+    }
+    if (searchParams.get("end_date")) {
+      backendParams.append("end_date", searchParams.get("end_date")!)
     }
 
     console.log("[v0] Backend query parameters:", backendParams.toString())
