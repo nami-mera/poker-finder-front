@@ -136,8 +136,95 @@ export default function TournamentsPage() {
   }
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedSearchTerm = localStorage.getItem("tournament-search-term")
+        const savedLocationFilter = localStorage.getItem("tournament-location-filter")
+        const savedShopFilter = localStorage.getItem("tournament-shop-filter")
+        const savedRewardCategoriesFilter = localStorage.getItem("tournament-reward-categories-filter")
+        const savedEntryFeeRange = localStorage.getItem("tournament-entry-fee-range")
+        const savedHasNoUpperLimit = localStorage.getItem("tournament-has-no-upper-limit")
+        const savedStartDate = localStorage.getItem("tournament-start-date")
+        const savedEndDate = localStorage.getItem("tournament-end-date")
+        const savedSortField = localStorage.getItem("tournament-sort-field")
+        const savedSortDirection = localStorage.getItem("tournament-sort-direction")
+
+        if (savedSearchTerm) setSearchTerm(savedSearchTerm)
+        if (savedLocationFilter) setLocationFilter(savedLocationFilter)
+        if (savedShopFilter) setShopFilter(JSON.parse(savedShopFilter))
+        if (savedRewardCategoriesFilter) setRewardCategoriesFilter(JSON.parse(savedRewardCategoriesFilter))
+        if (savedEntryFeeRange) setEntryFeeRange(JSON.parse(savedEntryFeeRange))
+        if (savedHasNoUpperLimit) setHasNoUpperLimit(JSON.parse(savedHasNoUpperLimit))
+        if (savedStartDate) setStartDate(savedStartDate)
+        if (savedEndDate) setEndDate(savedEndDate)
+        if (savedSortField && savedSortField !== "null") setSortField(savedSortField as SortField)
+        if (savedSortDirection) setSortDirection(savedSortDirection as SortDirection)
+      } catch (error) {
+        console.error("[v0] Error loading filters from localStorage:", error)
+      }
+    }
     fetchData(false)
   }, [])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-search-term", searchTerm)
+    }
+  }, [searchTerm])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-location-filter", locationFilter)
+    }
+  }, [locationFilter])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-shop-filter", JSON.stringify(shopFilter))
+    }
+  }, [shopFilter])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-reward-categories-filter", JSON.stringify(rewardCategoriesFilter))
+    }
+  }, [rewardCategoriesFilter])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-entry-fee-range", JSON.stringify(entryFeeRange))
+    }
+  }, [entryFeeRange])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-has-no-upper-limit", JSON.stringify(hasNoUpperLimit))
+    }
+  }, [hasNoUpperLimit])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-start-date", startDate)
+    }
+  }, [startDate])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-end-date", endDate)
+    }
+  }, [endDate])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-sort-field", sortField || "null")
+    }
+  }, [sortField])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-sort-direction", sortDirection)
+    }
+  }, [sortDirection])
 
   const uniquePrefectures = useMemo(() => {
     if (!config?.data?.all_prefecture) return []
@@ -356,7 +443,12 @@ export default function TournamentsPage() {
         <div className="absolute inset-0 bg-black/30" />
         <Card className="backdrop-blur-md bg-white/10 border-white/20 relative z-10">
           <CardContent className="p-8 text-center">
-            <div className="text-white text-lg">トーナメントデータを読み込み中...</div>
+            <div
+              className="text-white text-lg font-semibold bg-black/20 px-4 py-2 rounded-lg backdrop-blur-sm"
+              style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}
+            >
+              トーナメントデータを読み込み中...
+            </div>
           </CardContent>
         </Card>
       </div>
