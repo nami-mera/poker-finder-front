@@ -144,8 +144,8 @@ export default function TournamentsPage() {
         const savedRewardCategoriesFilter = localStorage.getItem("tournament-reward-categories-filter")
         const savedEntryFeeRange = localStorage.getItem("tournament-entry-fee-range")
         const savedHasNoUpperLimit = localStorage.getItem("tournament-has-no-upper-limit")
-        const savedStartDate = localStorage.getItem("tournament-start-date")
-        const savedEndDate = localStorage.getItem("tournament-end-date")
+        // const savedStartDate = localStorage.getItem("tournament-start-date")
+        // const savedEndDate = localStorage.getItem("tournament-end-date")
         const savedSortField = localStorage.getItem("tournament-sort-field")
         const savedSortDirection = localStorage.getItem("tournament-sort-direction")
 
@@ -155,8 +155,8 @@ export default function TournamentsPage() {
         if (savedRewardCategoriesFilter) setRewardCategoriesFilter(JSON.parse(savedRewardCategoriesFilter))
         if (savedEntryFeeRange) setEntryFeeRange(JSON.parse(savedEntryFeeRange))
         if (savedHasNoUpperLimit) setHasNoUpperLimit(JSON.parse(savedHasNoUpperLimit))
-        if (savedStartDate) setStartDate(savedStartDate)
-        if (savedEndDate) setEndDate(savedEndDate)
+        // if (savedStartDate) setStartDate(savedStartDate)
+        // if (savedEndDate) setEndDate(savedEndDate)
         if (savedSortField && savedSortField !== "null") setSortField(savedSortField as SortField)
         if (savedSortDirection) setSortDirection(savedSortDirection as SortDirection)
       } catch (error) {
@@ -202,17 +202,17 @@ export default function TournamentsPage() {
     }
   }, [hasNoUpperLimit])
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("tournament-start-date", startDate)
-    }
-  }, [startDate])
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     localStorage.setItem("tournament-start-date", startDate)
+  //   }
+  // }, [startDate])
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("tournament-end-date", endDate)
-    }
-  }, [endDate])
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     localStorage.setItem("tournament-end-date", endDate)
+  //   }
+  // }, [endDate])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -423,7 +423,7 @@ export default function TournamentsPage() {
 
   const formatRewardSummary = (rewardSummary: string) => {
     return rewardSummary
-      .split(",")
+      .split(/,|#&/)
       .map((item) => item.trim())
       .filter((item) => item.length > 0)
   }
@@ -600,7 +600,11 @@ export default function TournamentsPage() {
                     disabled={hasNoUpperLimit}
                   />
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="no-upper-limit" checked={hasNoUpperLimit} onCheckedChange={setHasNoUpperLimit} />
+                    <Checkbox
+                      id="no-upper-limit"
+                      checked={hasNoUpperLimit}
+                      onCheckedChange={(checked) => setHasNoUpperLimit(checked === true)}
+                    />
                     <label htmlFor="no-upper-limit" className="text-white/80 text-sm">
                       上限なし
                     </label>
