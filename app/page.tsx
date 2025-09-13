@@ -78,6 +78,21 @@ export default function TournamentsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchConfig = async () => {
+    try {
+      const configResponse = await fetch("/api/tournament/config")
+      if (!configResponse.ok) {
+        throw new Error(`Config API error: ${configResponse.status}`)
+      }
+      const configData = await configResponse.json()
+      console.log("[v0] Config data:", configData)
+      setConfig(configData)
+    } catch (err) {
+      console.error("[v0] Config API fetch error:", err)
+      // Don't set error state for config failures, just log it
+    }
+  }
+
   const fetchData = async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -99,29 +114,19 @@ export default function TournamentsPage() {
       params.append("start_date", `${startDate} 00:00:00`)
       params.append("end_date", `${endDate} 23:59:59`)
 
-      const [tournamentsResponse, configResponse] = await Promise.all([
-        fetch(`/api/tournament/query?${params.toString()}`),
-        fetch("/api/tournament/config"),
-      ])
+      const tournamentsResponse = await fetch(`/api/tournament/query?${params.toString()}`)
 
       if (!tournamentsResponse.ok) {
         throw new Error(`Tournament API error: ${tournamentsResponse.status}`)
       }
 
-      if (!configResponse.ok) {
-        throw new Error(`Config API error: ${configResponse.status}`)
-      }
-
       const tournamentsData = await tournamentsResponse.json()
-      const configData = await configResponse.json()
 
       console.log("[v0] Tournaments data:", tournamentsData)
-      console.log("[v0] Config data:", configData)
       console.log("[v0] Tournaments data type:", typeof tournamentsData, Array.isArray(tournamentsData))
       console.log("[v0] Tournaments length:", Array.isArray(tournamentsData) ? tournamentsData.length : "not array")
 
       setTournaments(Array.isArray(tournamentsData) ? tournamentsData : [])
-      setConfig(configData)
       setCurrentPage(1)
     } catch (err) {
       console.error("[v0] API fetch error:", err)
@@ -144,8 +149,6 @@ export default function TournamentsPage() {
         const savedRewardCategoriesFilter = localStorage.getItem("tournament-reward-categories-filter")
         const savedEntryFeeRange = localStorage.getItem("tournament-entry-fee-range")
         const savedHasNoUpperLimit = localStorage.getItem("tournament-has-no-upper-limit")
-        // const savedStartDate = localStorage.getItem("tournament-start-date")
-        // const savedEndDate = localStorage.getItem("tournament-end-date")
         const savedSortField = localStorage.getItem("tournament-sort-field")
         const savedSortDirection = localStorage.getItem("tournament-sort-direction")
 
@@ -155,14 +158,13 @@ export default function TournamentsPage() {
         if (savedRewardCategoriesFilter) setRewardCategoriesFilter(JSON.parse(savedRewardCategoriesFilter))
         if (savedEntryFeeRange) setEntryFeeRange(JSON.parse(savedEntryFeeRange))
         if (savedHasNoUpperLimit) setHasNoUpperLimit(JSON.parse(savedHasNoUpperLimit))
-        // if (savedStartDate) setStartDate(savedStartDate)
-        // if (savedEndDate) setEndDate(savedEndDate)
         if (savedSortField && savedSortField !== "null") setSortField(savedSortField as SortField)
         if (savedSortDirection) setSortDirection(savedSortDirection as SortDirection)
       } catch (error) {
         console.error("[v0] Error loading filters from localStorage:", error)
       }
     }
+    fetchConfig()
     fetchData(false)
   }, [])
 
@@ -201,18 +203,6 @@ export default function TournamentsPage() {
       localStorage.setItem("tournament-has-no-upper-limit", JSON.stringify(hasNoUpperLimit))
     }
   }, [hasNoUpperLimit])
-
-  // useEffect(() => {
-  //   if (typeof window !== "undefined") {
-  //     localStorage.setItem("tournament-start-date", startDate)
-  //   }
-  // }, [startDate])
-
-  // useEffect(() => {
-  //   if (typeof window !== "undefined") {
-  //     localStorage.setItem("tournament-end-date", endDate)
-  //   }
-  // }, [endDate])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -422,6 +412,9 @@ export default function TournamentsPage() {
   }
 
   const formatRewardSummary = (rewardSummary: string) => {
+    if (!rewardSummary) {
+      return []
+    }
     return rewardSummary
       .split(/,|#&/)
       .map((item) => item.trim())
