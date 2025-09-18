@@ -416,7 +416,8 @@ export default function TournamentsPage() {
       return []
     }
     return rewardSummary
-      .split(/,|#&/)
+      //.split(/,|#&/)
+      .split("#&")
       .map((item) => item.trim())
       .filter((item) => item.length > 0)
   }
