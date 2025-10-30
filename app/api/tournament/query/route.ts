@@ -26,8 +26,25 @@ const sampleTournaments = [
   },
 ]
 
-const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc";
+const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc"
 
+function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for")
+  const realIP = request.headers.get("x-real-ip")
+  const cfConnectingIP = request.headers.get("cf-connecting-ip")
+
+  if (forwarded) {
+    return forwarded.split(",")[0].trim()
+  }
+  if (realIP) {
+    return realIP
+  }
+  if (cfConnectingIP) {
+    return cfConnectingIP
+  }
+
+  return request.ip || "unknown"
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,12 +87,21 @@ export async function GET(request: NextRequest) {
     const backendUrl = `${BACKEND_BASE_URL}/api/tournament/query${backendParams.toString() ? "?" + backendParams.toString() : ""}`
     console.log("[v0] Backend URL:", backendUrl)
 
+    const clientIP = getClientIP(request)
+    const userAgent = request.headers.get("user-agent") || "unknown"
+    const referer = request.headers.get("referer") || ""
+    const acceptLanguage = request.headers.get("accept-language") || ""
+
     const response = await fetch(backendUrl, {
       method: "GET",
       headers: {
         Accept: "application/json",
-        "User-Agent": "Mozilla/5.0 (compatible; v0-app/1.0)",
+        "User-Agent": userAgent,
         Connection: "keep-alive",
+        "X-Client-IP": clientIP,
+        "X-Original-User-Agent": userAgent,
+        "X-Client-Referer": referer,
+        "X-Client-Accept-Language": acceptLanguage,
       },
     })
 

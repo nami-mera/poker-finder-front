@@ -31,6 +31,7 @@ interface Tournament {
   start_time: string
   late_time: string
   entry_fee: number
+  reward_value: number
   prizes_original: string
   reward_categories: string
   reward_summary: string
@@ -48,22 +49,25 @@ interface Config {
   data: {
     all_prefecture: string[]
     all_shop_name: string[]
+    all_city_ward: string[] // Added all_city_ward field
   }
 }
 
-type SortField = "entry_fee" | "start_date" | "start_time" | "shop_name" | null
+type SortField = "entry_fee" | "start_date" | "start_time" | "shop_name" | "reward_value" | null
 type SortDirection = "asc" | "desc"
 
 export default function TournamentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState("all")
+  const [cityWardFilter, setCityWardFilter] = useState<string[]>([]) // Added city_ward filter state
   const [shopFilter, setShopFilter] = useState<string[]>([])
   const [rewardCategoriesFilter, setRewardCategoriesFilter] = useState<string[]>([])
   const [entryFeeRange, setEntryFeeRange] = useState([0, 30000])
   const [hasNoUpperLimit, setHasNoUpperLimit] = useState(false)
 
+  const today = new Date().toISOString().split("T")[0]
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]
-  const [startDate, setStartDate] = useState(tomorrow)
+  const [startDate, setStartDate] = useState(today)
   const [endDate, setEndDate] = useState(tomorrow)
 
   const [sortField, setSortField] = useState<SortField>(null)
@@ -78,6 +82,21 @@ export default function TournamentsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchConfig = async () => {
+    try {
+      const configResponse = await fetch("/api/tournament/config")
+      if (!configResponse.ok) {
+        throw new Error(`Config API error: ${configResponse.status}`)
+      }
+      const configData = await configResponse.json()
+      console.log("[v0] Config data:", configData)
+      setConfig(configData)
+    } catch (err) {
+      console.error("[v0] Config API fetch error:", err)
+      // Don't set error state for config failures, just log it
+    }
+  }
+
   const fetchData = async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -90,6 +109,7 @@ export default function TournamentsPage() {
       const params = new URLSearchParams()
       if (searchTerm) params.append("key_word", searchTerm)
       if (locationFilter !== "all") params.append("prefecture", locationFilter)
+      if (cityWardFilter.length > 0) params.append("city_ward", cityWardFilter.join(",")) // Added city_ward to query params
       if (shopFilter.length > 0) params.append("shop_name", shopFilter.join(","))
       if (rewardCategoriesFilter.length > 0) params.append("reward_categories", rewardCategoriesFilter.join(","))
       params.append("min_entry_fee", entryFeeRange[0].toString())
@@ -99,29 +119,19 @@ export default function TournamentsPage() {
       params.append("start_date", `${startDate} 00:00:00`)
       params.append("end_date", `${endDate} 23:59:59`)
 
-      const [tournamentsResponse, configResponse] = await Promise.all([
-        fetch(`/api/tournament/query?${params.toString()}`),
-        fetch("/api/tournament/config"),
-      ])
+      const tournamentsResponse = await fetch(`/api/tournament/query?${params.toString()}`)
 
       if (!tournamentsResponse.ok) {
         throw new Error(`Tournament API error: ${tournamentsResponse.status}`)
       }
 
-      if (!configResponse.ok) {
-        throw new Error(`Config API error: ${configResponse.status}`)
-      }
-
       const tournamentsData = await tournamentsResponse.json()
-      const configData = await configResponse.json()
 
       console.log("[v0] Tournaments data:", tournamentsData)
-      console.log("[v0] Config data:", configData)
       console.log("[v0] Tournaments data type:", typeof tournamentsData, Array.isArray(tournamentsData))
       console.log("[v0] Tournaments length:", Array.isArray(tournamentsData) ? tournamentsData.length : "not array")
 
       setTournaments(Array.isArray(tournamentsData) ? tournamentsData : [])
-      setConfig(configData)
       setCurrentPage(1)
     } catch (err) {
       console.error("[v0] API fetch error:", err)
@@ -140,29 +150,28 @@ export default function TournamentsPage() {
       try {
         const savedSearchTerm = localStorage.getItem("tournament-search-term")
         const savedLocationFilter = localStorage.getItem("tournament-location-filter")
+        const savedCityWardFilter = localStorage.getItem("tournament-city-ward-filter") // Load city_ward from localStorage
         const savedShopFilter = localStorage.getItem("tournament-shop-filter")
         const savedRewardCategoriesFilter = localStorage.getItem("tournament-reward-categories-filter")
         const savedEntryFeeRange = localStorage.getItem("tournament-entry-fee-range")
         const savedHasNoUpperLimit = localStorage.getItem("tournament-has-no-upper-limit")
-        // const savedStartDate = localStorage.getItem("tournament-start-date")
-        // const savedEndDate = localStorage.getItem("tournament-end-date")
         const savedSortField = localStorage.getItem("tournament-sort-field")
         const savedSortDirection = localStorage.getItem("tournament-sort-direction")
 
         if (savedSearchTerm) setSearchTerm(savedSearchTerm)
         if (savedLocationFilter) setLocationFilter(savedLocationFilter)
+        if (savedCityWardFilter) setCityWardFilter(JSON.parse(savedCityWardFilter)) // Restore city_ward filter
         if (savedShopFilter) setShopFilter(JSON.parse(savedShopFilter))
         if (savedRewardCategoriesFilter) setRewardCategoriesFilter(JSON.parse(savedRewardCategoriesFilter))
         if (savedEntryFeeRange) setEntryFeeRange(JSON.parse(savedEntryFeeRange))
         if (savedHasNoUpperLimit) setHasNoUpperLimit(JSON.parse(savedHasNoUpperLimit))
-        // if (savedStartDate) setStartDate(savedStartDate)
-        // if (savedEndDate) setEndDate(savedEndDate)
         if (savedSortField && savedSortField !== "null") setSortField(savedSortField as SortField)
         if (savedSortDirection) setSortDirection(savedSortDirection as SortDirection)
       } catch (error) {
         console.error("[v0] Error loading filters from localStorage:", error)
       }
     }
+    fetchConfig()
     fetchData(false)
   }, [])
 
@@ -177,6 +186,12 @@ export default function TournamentsPage() {
       localStorage.setItem("tournament-location-filter", locationFilter)
     }
   }, [locationFilter])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tournament-city-ward-filter", JSON.stringify(cityWardFilter)) // Added useEffect to save city_ward filter to localStorage
+    }
+  }, [cityWardFilter])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -202,18 +217,6 @@ export default function TournamentsPage() {
     }
   }, [hasNoUpperLimit])
 
-  // useEffect(() => {
-  //   if (typeof window !== "undefined") {
-  //     localStorage.setItem("tournament-start-date", startDate)
-  //   }
-  // }, [startDate])
-
-  // useEffect(() => {
-  //   if (typeof window !== "undefined") {
-  //     localStorage.setItem("tournament-end-date", endDate)
-  //   }
-  // }, [endDate])
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("tournament-sort-field", sortField || "null")
@@ -234,6 +237,11 @@ export default function TournamentsPage() {
   const uniqueShops = useMemo(() => {
     if (!config?.data?.all_shop_name) return []
     return config.data.all_shop_name.sort()
+  }, [config])
+
+  const uniqueCityWards = useMemo(() => {
+    if (!config?.data?.all_city_ward) return []
+    return config.data.all_city_ward.sort()
   }, [config])
 
   const uniqueRewardCategories = useMemo(() => {
@@ -257,6 +265,7 @@ export default function TournamentsPage() {
     console.log("[v0] Filtering tournaments:", tournaments.length, "tournaments")
     console.log("[v0] Search term:", searchTerm)
     console.log("[v0] Location filter:", locationFilter)
+    console.log("[v0] City ward filter:", cityWardFilter) // Added city_ward logging
     console.log("[v0] Shop filter:", shopFilter)
     console.log("[v0] Reward categories filter:", rewardCategoriesFilter)
     console.log("[v0] Entry fee range:", entryFeeRange)
@@ -268,6 +277,8 @@ export default function TournamentsPage() {
         tournament.reward_summary.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesLocation = locationFilter === "all" || tournament.prefecture === locationFilter
+
+      const matchesCityWard = cityWardFilter.length === 0 || cityWardFilter.includes(tournament.city_ward) // Added city_ward filter logic
 
       const matchesShop = shopFilter.length === 0 || shopFilter.includes(tournament.shop_name)
 
@@ -290,19 +301,32 @@ export default function TournamentsPage() {
       console.log("[v0] Tournament:", tournament.event_name, {
         matchesSearch,
         matchesLocation,
+        matchesCityWard, // Added city_ward to logging
         matchesShop,
         matchesRewardCategories,
         matchesEntryFee,
         prefecture: tournament.prefecture,
+        cityWard: tournament.city_ward, // Added city_ward to logging
         locationFilter,
       })
 
-      return matchesSearch && matchesLocation && matchesShop && matchesRewardCategories && matchesEntryFee
+      return (
+        matchesSearch && matchesLocation && matchesCityWard && matchesShop && matchesRewardCategories && matchesEntryFee
+      ) // Added matchesCityWard to filter condition
     })
 
     console.log("[v0] Filtered tournaments count:", filtered.length)
     return filtered
-  }, [searchTerm, locationFilter, shopFilter, rewardCategoriesFilter, entryFeeRange, hasNoUpperLimit, tournaments])
+  }, [
+    searchTerm,
+    locationFilter,
+    cityWardFilter,
+    shopFilter,
+    rewardCategoriesFilter,
+    entryFeeRange,
+    hasNoUpperLimit,
+    tournaments,
+  ]) // Added cityWardFilter to dependencies
 
   const sortedTournaments = useMemo(() => {
     if (!sortField) return filteredTournaments
@@ -331,6 +355,9 @@ export default function TournamentsPage() {
         } else {
           return bValue.localeCompare(aValue)
         }
+      } else if (sortField === "reward_value") {
+        aValue = a.reward_value
+        bValue = b.reward_value
       }
 
       if (sortDirection === "asc") {
@@ -356,6 +383,11 @@ export default function TournamentsPage() {
       setSortField(field)
       setSortDirection("asc")
     }
+    setCurrentPage(1)
+  }
+
+  const handleCityWardToggle = (cityWard: string) => {
+    setCityWardFilter((prev) => (prev.includes(cityWard) ? prev.filter((c) => c !== cityWard) : [...prev, cityWard]))
     setCurrentPage(1)
   }
 
@@ -429,6 +461,9 @@ export default function TournamentsPage() {
   }
 
   const formatRewardSummary = (rewardSummary: string) => {
+    if (!rewardSummary) {
+      return []
+    }
     return rewardSummary
       .split("#&")
       .map((item) => item.trim())
@@ -563,25 +598,25 @@ export default function TournamentsPage() {
 
                 <div className="space-y-2">
                   <label className="text-white/80 text-sm font-medium flex items-center gap-2">
-                    <Store className="h-4 w-4" />
-                    店舗名
+                    <MapPin className="h-4 w-4" />
+                    市区町村
                   </label>
                   <Select>
                     <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
                       <SelectValue
-                        placeholder={shopFilter.length === 0 ? "店舗名" : `${shopFilter.length}店舗選択中`}
+                        placeholder={cityWardFilter.length === 0 ? "市区町村" : `${cityWardFilter.length}地域選択中`}
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {uniqueShops.map((shop) => (
-                        <div key={shop} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100">
+                      {uniqueCityWards.map((cityWard) => (
+                        <div key={cityWard} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100">
                           <Checkbox
-                            id={`shop-${shop}`}
-                            checked={shopFilter.includes(shop)}
-                            onCheckedChange={() => handleShopToggle(shop)}
+                            id={`city-ward-${cityWard}`}
+                            checked={cityWardFilter.includes(cityWard)}
+                            onCheckedChange={() => handleCityWardToggle(cityWard)}
                           />
-                          <label htmlFor={`shop-${shop}`} className="text-sm cursor-pointer flex-1">
-                            {shop}
+                          <label htmlFor={`city-ward-${cityWard}`} className="text-sm cursor-pointer flex-1">
+                            {cityWard}
                           </label>
                         </div>
                       ))}
@@ -620,6 +655,34 @@ export default function TournamentsPage() {
 
                 <div className="space-y-2">
                   <label className="text-white/80 text-sm font-medium flex items-center gap-2">
+                    <Store className="h-4 w-4" />
+                    店舗名
+                  </label>
+                  <Select>
+                    <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
+                      <SelectValue
+                        placeholder={shopFilter.length === 0 ? "店舗名" : `${shopFilter.length}店舗選択中`}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueShops.map((shop) => (
+                        <div key={shop} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100">
+                          <Checkbox
+                            id={`shop-${shop}`}
+                            checked={shopFilter.includes(shop)}
+                            onCheckedChange={() => handleShopToggle(shop)}
+                          />
+                          <label htmlFor={`shop-${shop}`} className="text-sm cursor-pointer flex-1">
+                            {shop}
+                          </label>
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-white/80 text-sm font-medium flex items-center gap-2">
                     <Trophy className="h-4 w-4" />
                     賞品カテゴリ
                   </label>
@@ -649,7 +712,9 @@ export default function TournamentsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <label className="text-white/80 text-sm font-medium flex items-center gap-2">
                     <Search className="h-4 w-4" />
@@ -713,6 +778,15 @@ export default function TournamentsPage() {
                       <div className="flex items-center gap-1">
                         参加費
                         {getSortIcon("entry_fee")}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[100px]"
+                      onClick={() => handleSort("reward_value")}
+                    >
+                      <div className="flex items-center gap-1">
+                        coin総値
+                        {getSortIcon("reward_value")}
                       </div>
                     </TableHead>
                     <TableHead className="text-white/80 w-50">賞金詳細</TableHead>
@@ -792,6 +866,9 @@ export default function TournamentsPage() {
                         </TableCell>
                         <TableCell className="text-white/80 font-semibold">
                           {formatCurrency(tournament.entry_fee)}
+                        </TableCell>
+                        <TableCell className="text-white/80 font-semibold">
+                          {tournament.reward_value ? formatCurrency(tournament.reward_value) : "-"}
                         </TableCell>
                         <TableCell className="text-white/80 w-60">
                           <div className="flex flex-col gap-1">

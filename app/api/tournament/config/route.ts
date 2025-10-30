@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 const sampleConfig = {
   data: {
@@ -13,19 +14,45 @@ const sampleConfig = {
     ],
   },
 }
-const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc";
+const BACKEND_BASE_URL = process.env.BACKEND_BASE_URL || "https://api.eriri.cc"
 
+function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for")
+  const realIP = request.headers.get("x-real-ip")
+  const cfConnectingIP = request.headers.get("cf-connecting-ip")
 
-export async function GET() {
+  if (forwarded) {
+    return forwarded.split(",")[0].trim()
+  }
+  if (realIP) {
+    return realIP
+  }
+  if (cfConnectingIP) {
+    return cfConnectingIP
+  }
+
+  return request.ip || "unknown"
+}
+
+export async function GET(request: NextRequest) {
   try {
     console.log("[v0] Attempting to fetch config from backend API...")
+
+    const clientIP = getClientIP(request)
+    const userAgent = request.headers.get("user-agent") || "unknown"
+    const referer = request.headers.get("referer") || ""
+    const acceptLanguage = request.headers.get("accept-language") || ""
 
     const response = await fetch(`${BACKEND_BASE_URL}/api/tournament/config`, {
       method: "GET",
       headers: {
         Accept: "application/json",
-        "User-Agent": "Mozilla/5.0 (compatible; v0-app/1.0)",
+        "User-Agent": userAgent,
         Connection: "keep-alive",
+        "X-Client-IP": clientIP,
+        "X-Original-User-Agent": userAgent,
+        "X-Client-Referer": referer,
+        "X-Client-Accept-Language": acceptLanguage,
       },
       cache: "no-store",
     })
