@@ -51,7 +51,7 @@ interface Config {
   }
 }
 
-type SortField = "entry_fee" | "start_date" | "shop_name" | null
+type SortField = "entry_fee" | "start_date" | "start_time" | "shop_name" | null
 type SortDirection = "asc" | "desc"
 
 export default function TournamentsPage() {
@@ -316,6 +316,13 @@ export default function TournamentsPage() {
       } else if (sortField === "start_date") {
         aValue = new Date(a.start_date).getTime()
         bValue = new Date(b.start_date).getTime()
+      } else if (sortField === "start_time") {
+        const parseDateTime = (value: string) => {
+          if (!value) return 0
+          return new Date(value.replace(" ", "T")).getTime()
+        }
+        aValue = parseDateTime(a.start_time)
+        bValue = parseDateTime(b.start_time)
       } else if (sortField === "shop_name") {
         aValue = a.shop_name.toLowerCase()
         bValue = b.shop_name.toLowerCase()
@@ -423,7 +430,7 @@ export default function TournamentsPage() {
 
   const formatRewardSummary = (rewardSummary: string) => {
     return rewardSummary
-      .split(/,|#&/)
+      .split("#&")
       .map((item) => item.trim())
       .filter((item) => item.length > 0)
   }
@@ -718,7 +725,15 @@ export default function TournamentsPage() {
                         {getSortIcon("start_date")}
                       </div>
                     </TableHead>
-                    <TableHead className="text-white/80 min-w-[120px]">開始時間</TableHead>
+                    <TableHead
+                      className="text-white/80 cursor-pointer hover:text-white transition-colors min-w-[120px]"
+                      onClick={() => handleSort("start_time")}
+                    >
+                      <div className="flex items-center gap-1">
+                        開始時間
+                        {getSortIcon("start_time")}
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
